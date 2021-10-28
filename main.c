@@ -44,9 +44,45 @@ unsigned int GetADCValue(unsigned char Channel)
 }
 
 void main(void) {
-    unsigned int Temp, Battery;
-    TRISIO0=1;
-    TRISIO1=1;
-    TRISIO2=0;
+    unsigned int Temp, Battery,X;
+    InitADC(AN0);
+    //InitADC(AN1);
+    TRISIO=0;
+    GP4=0;
+    GP5=0;
+    X=0;
+    int i;
+    
+    while(1)
+    {
+        Temp = GetADCValue(AN0);
+        //Battery = GetADCValue(AN1);
+        if (Temp>512)
+        {
+          if(X==1)
+          {
+           GP5=1;   
+          }  
+          else
+          {
+              for(i=0; i<7;i++)
+              {
+                 __delay_ms(100); 
+                 Temp=GetADCValue(AN0);
+                 if (Temp<512)
+                 {
+                     break;
+                 }
+              }
+           X=1;
+          }
+            
+        }
+        else 
+        {
+            X=0;
+            GP5=0;
+        }  
+    }
     return;
 }
