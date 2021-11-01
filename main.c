@@ -1,17 +1,19 @@
 /*
  * File:   main.c
- * Author: regoe
+ * Author: Andrew Voss and Rylee Goellner
  *
  * Created on October 27, 2021, 5:21 PM
  */
 
 
 #include "CONFIG.h"
-#define _XTAL_FREQ 40000000
+#define _XTAL_FREQ 4000000  // PIC12F675 internal freq of 4MHz
 #define AN0 1<<0
 #define AN1 1<<1
 #define AN2 1<<2
 #define AN3 1<<3
+
+
 void InitADC(unsigned char Channel)
 {
     ANSEL   = 0X10;
@@ -44,45 +46,53 @@ unsigned int GetADCValue(unsigned char Channel)
 }
 
 void main(void) {
-    unsigned int Temp, Battery,X;
+    unsigned int Temp, Battery;
+    int buzz = 0;
+    
     InitADC(AN0);
-    //InitADC(AN1);
+    InitADC(AN1);
+    
     TRISIO=0;
+    
     GP4=0;
     GP5=0;
-    X=0;
-    int i;
+            
+    unsigned int tempCal = 512;
     
     while(1)
     {
+
         Temp = GetADCValue(AN0);
-        //Battery = GetADCValue(AN1);
-        if (Temp>512)
-        {
-          if(X==1)
-          {
-           GP5=1;   
-          }  
-          else
-          {
-              for(i=0; i<7;i++)
-              {
-                 __delay_ms(100); 
-                 Temp=GetADCValue(AN0);
-                 if (Temp<512)
-                 {
-                     break;
-                 }
-              }
-           X=1;
-          }
-            
+        Battery = GetADCValue(AN1);
+        
+        if(Temp > tempCal)
+            GP2 = 1;
+        else
+            GP2 = 0;
+        
+        if(!buzz && Temp > tempCal){
+            for(int i = 0; i < 600; i++){
+                __delay_ms(100);
+                Temp = GetADCValue(AN0);
+                if(Temp < tempCal)
+                    break;
+            }
+            if(Temp > tempCal)
+                buzz = 1;
+        } else if(!(Temp > tempCal)) {
+            buzz = 0;
         }
-        else 
-        {
-            X=0;
-            GP5=0;
-        }  
+        
+        // 3V => Battery = 64; (2.8/3)*64 = 59.733
+        if(Battery < 59)
+            GP4 = 1;
+        else
+            GP4 = 0;
+                
+        if(buzz)
+            GP5 = !GP5;
+       
+        __delay_ms(10);
     }
     return;
 }
